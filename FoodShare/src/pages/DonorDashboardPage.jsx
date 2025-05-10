@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_ENDPOINTS } from '../config/apiConfig';
 import { 
   Box, 
   CssBaseline, 
@@ -36,12 +35,17 @@ import {
   Notifications as NotificationsIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import axios from 'axios';
 import DonationForm from '../components/donor/DonationForm';
 import DonationsList from '../components/donor/DonationsList';
 import ImpactMetrics from '../components/donor/ImpactMetrics';
 import Rewards from '../components/donor/Rewards';
 import { mockDonations, mockRewards, mockDonorImpact } from '../mocks/mockData';
+
+// Helper function for delay
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Reduced timeout for faster mock API responses
+const MOCK_DELAY = 300; // same as in handlers.js
 
 // Define drawer width for sidebar
 const drawerWidth = 240;
@@ -57,76 +61,74 @@ const DonorDashboardPage = () => {
   const [rewardsData, setRewardsData] = useState(null);
   const [impactData, setImpactData] = useState(null);
   const [error, setError] = useState(null);
+  const [userData, setUserData] = useState(null);
   
   // Mock user ID for now - this would come from auth context in a real app
   const donorId = '550e8400-e29b-41d4-a716-446655440000';
-      useEffect(() => {
+    useEffect(() => {
     // Fetch all necessary data for the dashboard
     const fetchDashboardData = async () => {
       setLoading(true);
       
-      let hasAnyDataLoaded = false; // Track if we have any data at all
-      let donationsData = null;
-      let rewardsData = null;
-      let impactData = null;
-      
-      // Fetch donations
       try {
-        const donationsResponse = await axios.get(
-          `${API_ENDPOINTS.DONATION.LIST}?donor_id=${donorId}`
-        );
-        donationsData = donationsResponse.data;
-        hasAnyDataLoaded = true;
-      } catch (donationsErr) {
-        console.error('Error fetching donations:', donationsErr);
-        donationsData = mockDonations.filter(donation => donation.donor_id === donorId);
-      }
+        // Get user data from localStorage
+        const { authService } = await import('../utils/authUtils');
+        const currentUser = authService.getCurrentUser();
+        setUserData(currentUser);
         
-      // Fetch rewards data - handle potential 500 error
-      try {
-        const rewardsResponse = await axios.get(
-          `${API_ENDPOINTS.REWARDS.USER_REWARDS(donorId)}`
+        // Use mock data for all components
+        console.log('Using mock data for donor dashboard');
+        
+        // Filter mock donations for this donor
+        let donationsData = mockDonations.filter(donation => 
+          donation.donor_id === donorId
         );
-        rewardsData = rewardsResponse.data;
-        hasAnyDataLoaded = true;
-      } catch (rewardsErr) {
-        console.error('Error fetching rewards data:', rewardsErr);
-        // Use mock data for rewards as a fallback
-        rewardsData = {
+        
+        // Add isBackupData flag to indicate using mock data
+        donationsData = donationsData.map(donation => ({
+          ...donation,
+          isBackupData: true
+        }));
+        
+        // Set mock rewards data with isBackupData flag
+        const rewardsData = {
           ...mockRewards,
-          isBackupData: true // Add flag to indicate this is mock data
+          isBackupData: true
         };
-      }
         
-      // Fetch impact metrics
-      try {
-        const impactResponse = await axios.get(
-          API_ENDPOINTS.IMPACT.DONOR(donorId)
-        );
-        impactData = impactResponse.data;
-        hasAnyDataLoaded = true;
-      } catch (impactErr) {
-        console.error('Error fetching impact data:', impactErr);
-        impactData = mockDonorImpact;
-      }
+        // Set mock impact data with isBackupData flag
+        const impactData = {
+          ...mockDonorImpact,
+          donor_id: donorId,
+          isBackupData: true
+        };
         
-      // NEVER show the error page if we have ANY data - this prevents rewards API failures 
-      // from causing the entire dashboard to fail
-      if (!hasAnyDataLoaded) {
-        setError('Failed to load dashboard data. Using mock data instead.');
-        console.log('All API calls failed. Using mock data as fallback');
-      } else {
-        // Clear any previous errors
-        setError(null);
+        // Update state with mock data
+        setDonations(donationsData || []);  // Ensure donations is always an array
+        setRewardsData(rewardsData);
+        setImpactData(impactData);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data');
+        // Initialize with empty values
+        setDonations([]);
+        setRewardsData({
+          points: 0,
+          level: 'Bronze',
+          rewards_available: [],
+          rewards_redeemed: []
+        });
+        setImpactData({
+          donor_id: donorId,
+          total_donations: 0,
+          total_meals_provided: 0,
+          total_kg_saved: 0,
+          impact_by_month: []
+        });
+      } finally {
+        // Turn off loading state
+        setLoading(false);
       }
-      
-      // Update state with fetched data (real or mock)
-      setDonations(donationsData);
-      setRewardsData(rewardsData);
-      setImpactData(impactData);
-      
-      // Always turn off loading state when done
-      setLoading(false);
     };
     
     fetchDashboardData();
@@ -139,74 +141,132 @@ const DonorDashboardPage = () => {
   
   // Function to add a new donation
   const handleAddDonation = async (newDonation) => {
-    try {
-      const response = await axios.post('/api/v1/donations', {
-        ...newDonation,
-        donor_id: donorId
-      });
-      
-      // Add the new donation to the state
-      setDonations([response.data, ...donations]);
-      
-      return { success: true, data: response.data };
-    } catch (err) {
-      console.error('Error adding donation:', err);
-      return { success: false, error: err.message };
-    }
+    console.log('Using mock data for adding donation');
+    
+    // Create a new mock donation
+    const newMockDonation = {
+      ...newDonation,
+      donation_id: `donation-${Date.now()}`, // Generate a unique ID
+      donor_id: donorId,
+      status: 'available',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      isBackupData: true
+    };
+    
+    // Add the new donation to the state - ensure donations is an array
+    const currentDonations = Array.isArray(donations) ? donations : [];
+    setDonations([newMockDonation, ...currentDonations]);
+    
+    // Simulate API delay
+    await delay(MOCK_DELAY);
+    
+    return { success: true, data: newMockDonation };
   };
   
   // Function to update donation
   const handleUpdateDonation = async (donationId, updatedData) => {
-    try {
-      const response = await axios.put(`/api/v1/donations/${donationId}`, updatedData);
-      
-      // Update donation in state
-      setDonations(donations.map(donation => 
-        donation.donation_id === donationId ? response.data : donation
-      ));
-      
-      return { success: true, data: response.data };
-    } catch (err) {
-      console.error('Error updating donation:', err);
-      return { success: false, error: err.message };
+    console.log('Using mock data for updating donation');
+    
+    // Check if donations is not an array or if donation doesn't exist
+    if (!Array.isArray(donations)) {
+      return { success: false, error: 'Donations data is not available' };
     }
+    
+    const donationIndex = donations.findIndex(donation => donation.donation_id === donationId);
+    
+    if (donationIndex === -1) {
+      return { success: false, error: 'Donation not found' };
+    }
+    
+    // Create updated donation
+    const updatedDonation = {
+      ...donations[donationIndex],
+      ...updatedData,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Update donation in state
+    const updatedDonations = [...donations];
+    updatedDonations[donationIndex] = updatedDonation;
+    setDonations(updatedDonations);
+    
+    // Simulate API delay
+    await delay(MOCK_DELAY);
+    
+    return { success: true, data: updatedDonation };
   };
   
   // Function to delete donation
   const handleDeleteDonation = async (donationId) => {
-    try {
-      await axios.delete(`/api/v1/donations/${donationId}`);
-      
-      // Remove donation from state
-      setDonations(donations.filter(donation => donation.donation_id !== donationId));
-      
-      return { success: true };
-    } catch (err) {
-      console.error('Error deleting donation:', err);
-      return { success: false, error: err.message };
+    console.log('Using mock data for deleting donation');
+    
+    // Check if donations is an array and if donation exists
+    if (!Array.isArray(donations)) {
+      return { success: false, error: 'Donations data is not available' };
     }
+    
+    const donationExists = donations.some(donation => donation.donation_id === donationId);
+    
+    if (!donationExists) {
+      return { success: false, error: 'Donation not found' };
+    }
+    
+    // Remove donation from state
+    setDonations(donations.filter(donation => donation.donation_id !== donationId));
+    
+    // Simulate API delay
+    await delay(MOCK_DELAY);
+    
+    return { success: true };
   };
   
   // Function to redeem a reward
   const handleRedeemReward = async (rewardId) => {
-    try {
-      const response = await axios.post('/api/v1/rewards/redeem', {
-        donor_id: donorId,
-        reward_id: rewardId
-      });
-      
-      // Update rewards data with new points balance
-      setRewardsData({
-        ...rewardsData,
-        points: response.data.points_remaining,
-        // In a real app, you would also update the rewards_available and rewards_redeemed arrays
-      });
-      
-      return { success: true, data: response.data };
-    } catch (err) {
-      console.error('Error redeeming reward:', err);
-      return { success: false, error: err.message };
+    console.log('Using mock data for redeeming reward');
+    
+    // Find the reward to redeem
+    const availableReward = rewardsData.rewards_available.find(reward => 
+      reward.reward_id === rewardId
+    );
+    
+    if (!availableReward) {
+      return { success: false, error: 'Reward not found' };
     }
+    
+    // Check if user has enough points
+    if (rewardsData.points < availableReward.points_required) {
+      return { success: false, error: 'Not enough points to redeem this reward' };
+    }
+    
+    // Create redeemed reward
+    const redeemedReward = {
+      ...availableReward,
+      redeemed_at: new Date().toISOString()
+    };
+    
+    // Update rewards data
+    const updatedRewardsData = {
+      ...rewardsData,
+      points: rewardsData.points - availableReward.points_required,
+      rewards_available: rewardsData.rewards_available.filter(reward => 
+        reward.reward_id !== rewardId
+      ),
+      rewards_redeemed: [...rewardsData.rewards_redeemed, redeemedReward]
+    };
+    
+    // Update state
+    setRewardsData(updatedRewardsData);
+    
+    // Simulate API delay
+    await delay(MOCK_DELAY);
+    
+    return { 
+      success: true, 
+      data: {
+        points_remaining: updatedRewardsData.points
+      }
+    };
   };
   
   // Render loading state
@@ -279,10 +339,9 @@ const DonorDashboardPage = () => {
             <Badge badgeContent={2} color="error">
               <NotificationsIcon />
             </Badge>
-          </IconButton>
-          <IconButton color="inherit" aria-label="profile" edge="end">
+          </IconButton>          <IconButton color="inherit" aria-label="profile" edge="end">
             <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 32, height: 32 }}>
-              J
+              {userData?.name ? userData.name.charAt(0) : 'U'}
             </Avatar>
           </IconButton>
         </Toolbar>
@@ -304,8 +363,7 @@ const DonorDashboardPage = () => {
       >
         <Toolbar />
         <Box sx={{ overflow: 'auto', p: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, mt: 1 }}>
-            <Avatar 
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, mt: 1 }}>            <Avatar 
               sx={{ 
                 width: 64, 
                 height: 64,
@@ -313,11 +371,11 @@ const DonorDashboardPage = () => {
                 boxShadow: 2
               }}
             >
-              JD
+              {userData?.name ? userData.name.charAt(0) : 'U'}
             </Avatar>
             <Box sx={{ ml: 2 }}>
               <Typography variant="h6" noWrap>
-                John Donor
+                {userData?.name || 'User'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {rewardsData?.level} Member
@@ -418,10 +476,9 @@ const DonorDashboardPage = () => {
             transition={{ duration: 0.5 }}
           >
             {activeSection === 'dashboard' && (
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
+              <Grid container spacing={3}>                <Grid item xs={12}>
                   <Typography variant="h4" component="h1" gutterBottom>
-                    Welcome back, John!
+                    Welcome back, {userData?.name ? userData.name.split(' ')[0] : 'User'}!
                   </Typography>
                 </Grid>
                 
@@ -508,9 +565,8 @@ const DonorDashboardPage = () => {
                         <AddCircleIcon />
                       </IconButton>
                     </Box>
-                    
-                    <DonationsList 
-                      donations={donations.slice(0, 3)} 
+                      <DonationsList 
+                      donations={Array.isArray(donations) ? donations.slice(0, 3) : []} 
                       onUpdate={handleUpdateDonation}
                       onDelete={handleDeleteDonation}
                     />
@@ -555,9 +611,8 @@ const DonorDashboardPage = () => {
                   >
                     <Typography variant="h5" component="h2" gutterBottom>
                       Donation History
-                    </Typography>
-                    <DonationsList 
-                      donations={donations} 
+                    </Typography>                    <DonationsList 
+                      donations={Array.isArray(donations) ? donations : []} 
                       onUpdate={handleUpdateDonation}
                       onDelete={handleDeleteDonation}
                     />

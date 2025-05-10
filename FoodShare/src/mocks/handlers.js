@@ -5,16 +5,18 @@ import { API_BASE_URL } from '../config/apiConfig';
 // Helper function for delay
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Reduced timeout for faster mock API responses
+const MOCK_DELAY = 300; // reduced from 600-1000ms to 300ms
+
 export const handlers = [
   // Handler for KPIs
   http.get('/api/v1/kpis', async () => {
-    await delay(800);
+    await delay(MOCK_DELAY);
     return HttpResponse.json(mockKpiData);
   }),
-  
-  // Handler for notifications - Get user notifications
+    // Handler for notifications - Get user notifications
   http.get('/api/v1/notifications', async ({ request }) => {
-    await delay(600);
+    await delay(MOCK_DELAY);
     
     // Parse URL to get query parameters
     const url = new URL(request.url);
@@ -49,10 +51,9 @@ export const handlers = [
       total_pages: totalPages
     });
   }),
-  
-  // Handler for marking notification as read
+    // Handler for marking notification as read
   http.patch('/api/v1/notifications/:notification_id/read', async ({ params }) => {
-    await delay(500);
+    await delay(MOCK_DELAY);
     
     const { notification_id } = params;
     
@@ -76,10 +77,9 @@ export const handlers = [
       notification: mockNotifications[notificationIndex]
     });
   }),
-  
-  // Handler for user registration
+    // Handler for user registration
   http.post('/api/v1/users/register', async ({ request }) => {
-    await delay(1000);
+    await delay(MOCK_DELAY);
     
     const requestBody = await request.json();
     
@@ -114,10 +114,9 @@ export const handlers = [
       role: requestBody.role
     });
   }),
-    
-  // Handler for user login
+      // Handler for user login
   http.post('/api/v1/users/login', async ({ request }) => {
-    await delay(1000);
+    await delay(MOCK_DELAY);
     
     const requestBody = await request.json();
     
@@ -184,10 +183,9 @@ export const handlers = [
       );
     }
   }),
-  
-  // Handler for user logout
+    // Handler for user logout
   http.post('/api/v1/auth/logout', async () => {
-    await delay(500);
+    await delay(MOCK_DELAY);
     
     // In a real app, this would invalidate the token on the server
     
@@ -196,20 +194,18 @@ export const handlers = [
       message: 'Successfully logged out'
     });
   }),
-  
-  // Also handle the endpoint without /auth/ for compatibility
+    // Also handle the endpoint without /auth/ for compatibility
   http.post('/api/v1/users/logout', async () => {
-    await delay(500);
+    await delay(MOCK_DELAY);
     
     return HttpResponse.json({
       success: true,
       message: 'Successfully logged out'
     });
   }),
-
   // Handler to get donor's donations
   http.get('/api/v1/donations', async ({ request }) => {
-    await delay(800);
+    await delay(MOCK_DELAY);
     
     // Check for donor_id in URL params
     const url = new URL(request.url);
@@ -225,10 +221,9 @@ export const handlers = [
     // If no donor_id specified, return all donations (admin view)
     return HttpResponse.json(mockDonations);
   }),
-  
-  // Handler to get a single donation
+    // Handler to get a single donation
   http.get('/api/v1/donations/:donationId', async ({ params }) => {
-    await delay(500);
+    await delay(MOCK_DELAY);
     
     const { donationId } = params;
     const donation = mockDonations.find(d => d.donation_id === donationId);
@@ -242,10 +237,9 @@ export const handlers = [
       );
     }
   }),
-  
-  // Handler to create a new donation
+    // Handler to create a new donation
   http.post('/api/v1/donations', async ({ request }) => {
-    await delay(1000);
+    await delay(MOCK_DELAY);
     
     const requestBody = await request.json();
     
@@ -277,10 +271,9 @@ export const handlers = [
     // For the mock, we're just returning the new donation
     return HttpResponse.json(newDonation);
   }),
-  
-  // Handler to update a donation
+    // Handler to update a donation
   http.put('/api/v1/donations/:donationId', async ({ request, params }) => {
-    await delay(800);
+    await delay(MOCK_DELAY);
     
     const { donationId } = params;
     const requestBody = await request.json();
@@ -293,10 +286,9 @@ export const handlers = [
       updated_at: new Date().toISOString()
     });
   }),
-  
-  // Get donor rewards
+    // Get donor rewards
   http.get('/api/v1/rewards/user/:userId', async ({ params }) => {
-    await delay(600);
+    await delay(MOCK_DELAY);
     
     const { userId } = params;
     const userRewards = mockRewards.find(r => r.user_id === userId);
@@ -309,10 +301,9 @@ export const handlers = [
         { status: 404 }
       );
     }
-  }),
-  // Get donor impact metrics
+  }),  // Get donor impact metrics
   http.get('/api/v1/impact/donor/:donorId', async ({ params }) => {
-    await delay(700);
+    await delay(MOCK_DELAY);
     
     const { donorId } = params;
     
@@ -327,10 +318,9 @@ export const handlers = [
       );
     }
   }),
-  
-  // Get beneficiary impact metrics
+    // Get beneficiary impact metrics
   http.get('/api/v1/impact/beneficiary/:beneficiaryId', async ({ params }) => {
-    await delay(700);
+    await delay(MOCK_DELAY);
     
     const { beneficiaryId } = params;
     
@@ -351,16 +341,14 @@ export const handlers = [
   http.get('/api/v1/food_categories', () => {
     return HttpResponse.json(foodCategories);
   }),
-  
-  // Handler for food categories
+    // Handler for food categories
   http.get('/api/v1/categories/food', async () => {
-    await delay(500);
+    await delay(MOCK_DELAY);
     return HttpResponse.json(foodCategories);
   }),
-  
-  // Handler for donation requests
+    // Handler for donation requests
   http.get('/api/v1/donation_requests', async ({ request }) => {
-    await delay(700);
+    await delay(MOCK_DELAY);
     
     // Parse URL to get query parameters
     const url = new URL(request.url);
@@ -377,10 +365,9 @@ export const handlers = [
     // In a real implementation, we would filter by user ID
     return HttpResponse.json([]);
   }),
-  
-  // Handler for creating a donation request
+    // Handler for creating a donation request
   http.post('/api/v1/donation_requests', async ({ request }) => {
-    await delay(800);
+    await delay(MOCK_DELAY);
     
     const requestBody = await request.json();
     
@@ -405,10 +392,9 @@ export const handlers = [
     
     return HttpResponse.json(newRequest);
   }),
-  
-  // Handler for deleting a donation request
+    // Handler for deleting a donation request
   http.delete('/api/v1/donation_requests/:requestId', async ({ params }) => {
-    await delay(600);
+    await delay(MOCK_DELAY);
     
     const { requestId } = params;
     
@@ -418,22 +404,19 @@ export const handlers = [
       message: `Request ${requestId} successfully deleted`
     });
   }),
-  
-  // Get admin dashboard data
+    // Get admin dashboard data
   http.get('/api/v1/admin/dashboard', async () => {
-    await delay(1000);
+    await delay(MOCK_DELAY);
     return HttpResponse.json(mockAdminAnalytics);
   }),
-  
-  // Get users for admin
+    // Get users for admin
   http.get('/api/v1/admin/users', async () => {
-    await delay(800);
+    await delay(MOCK_DELAY);
     return HttpResponse.json(mockUsers);
   }),
-  
-  // Get user profile
+    // Get user profile
   http.get('/api/v1/users/:userId', async ({ params }) => {
-    await delay(600);
+    await delay(MOCK_DELAY);
     
     const { userId } = params;
     const userProfile = mockUserProfiles.find(p => p.user_id === userId);
@@ -447,10 +430,9 @@ export const handlers = [
       );
     }
   }),
-  
   // Update user profile
   http.put('/api/v1/users/:userId', async ({ params, request }) => {
-    await delay(800);
+    await delay(MOCK_DELAY);
     
     const { userId } = params;
     const requestBody = await request.json();
@@ -461,6 +443,52 @@ export const handlers = [
       ...requestBody,
       user_id: userId,
       updated_at: new Date().toISOString()
+    });  }),
+  
+  // Handler for search donations
+  http.get('/api/v1/donations/search', async ({ request }) => {
+    await delay(MOCK_DELAY);
+    
+    // Parse URL to get query parameters
+    const url = new URL(request.url);
+    const keyword = url.searchParams.get('keyword');
+    const foodCategory = url.searchParams.get('food_category');
+    const location = url.searchParams.get('location');
+    
+    // Filter donations based on search criteria
+    let filteredDonations = [...mockDonations].filter(donation => 
+      donation.status === 'available'
+    );
+      // Filter by keyword
+    if (keyword) {
+      const lowerKeyword = keyword.toLowerCase();
+      filteredDonations = filteredDonations.filter(donation => 
+        donation.food_name.toLowerCase().includes(lowerKeyword) ||
+        donation.food_type.toLowerCase().includes(lowerKeyword) ||
+        (donation.description && donation.description.toLowerCase().includes(lowerKeyword))
+      );
+    }
+    
+    // Filter by food category
+    if (foodCategory && foodCategory !== 'all') {
+      filteredDonations = filteredDonations.filter(donation => 
+        donation.food_type.toLowerCase() === foodCategory.toLowerCase()
+      );
+    }
+      // Filter by location
+    if (location) {
+      const lowerLocation = location.toLowerCase();
+      filteredDonations = filteredDonations.filter(donation => 
+        donation.pickup_address && donation.pickup_address.toLowerCase().includes(lowerLocation)
+      );
+    }
+    
+    return HttpResponse.json({
+      content: filteredDonations,
+      total_elements: filteredDonations.length,
+      total_pages: 1,
+      page: 0,
+      size: filteredDonations.length
     });
   })
 ];

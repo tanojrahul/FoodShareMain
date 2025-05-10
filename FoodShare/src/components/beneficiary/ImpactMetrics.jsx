@@ -11,7 +11,8 @@ import {
   useTheme,
   LinearProgress,
   Alert,
-  Link
+  Link,
+  Chip
 } from '@mui/material';
 import { 
   Restaurant as FoodIcon,
@@ -19,7 +20,8 @@ import {
   People as PeopleIcon,
   CalendarMonth as CalendarIcon,
   AccessTime as TimeIcon,
-  Bolt as EnergyIcon
+  Bolt as EnergyIcon,
+  Info as InfoIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from 'recharts';
@@ -38,9 +40,28 @@ const ImpactMetrics = ({ data }) => {
     theme.palette.warning.main
   ];
   
-  useEffect(() => {
+  // Add a helper function to safely access metrics properties
+  const getMetricValue = (key, defaultValue = 0) => {
+    if (!metrics || metrics[key] === undefined || metrics[key] === null) {
+      return defaultValue;
+    }
+    return metrics[key];
+  };
+    useEffect(() => {
     if (data) {
-      setMetrics(data);
+      // Make sure data has all required properties with fallbacks
+      const safeData = {
+        totalFoodReceived: data.totalFoodReceived || data.total_food_received_kg || 0,
+        carbonFootprintReduced: data.carbonFootprintReduced || data.carbon_footprint_saved_kg || 0,
+        mealsProvided: data.mealsProvided || data.total_meals_received || 0,
+        donationsReceived: data.donationsReceived || data.total_requests || 0,
+        avgResponseTime: data.avgResponseTime || 0,
+        wasteReduction: data.wasteReduction || data.total_food_received_kg || 0,
+        impactOverTime: data.impactOverTime || data.monthly_stats || [],
+        categoryBreakdown: data.categoryBreakdown || []
+      };
+      
+      setMetrics(safeData);
       setLoading(false);
     } else {
       // If no data is provided, use mock data for demo purposes
@@ -72,6 +93,21 @@ const ImpactMetrics = ({ data }) => {
     }
   }, [data]);
   
+  // Add this helper function to safely access metrics properties with a default value
+  const getMetricsValue = (propertyPath, defaultValue = 0) => {
+    if (!metrics) return defaultValue;
+    
+    const parts = propertyPath.split('.');
+    let value = metrics;
+    
+    for (const part of parts) {
+      if (value === null || value === undefined) return defaultValue;
+      value = value[part];
+    }
+    
+    return value !== null && value !== undefined ? value : defaultValue;
+  };
+  
   if (loading) {
     return (
       <Box sx={{ 
@@ -96,8 +132,7 @@ const ImpactMetrics = ({ data }) => {
       </Alert>
     );
   }
-  
-  return (
+    return (
     <Box>
       {/* Introduction */}
       <Paper 
@@ -108,9 +143,17 @@ const ImpactMetrics = ({ data }) => {
         elevation={2} 
         sx={{ p: 3, mb: 4, borderRadius: 2 }}
       >
-        <Typography variant="h5" gutterBottom>
-          Your FoodShare Impact
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+          <Typography variant="h5" gutterBottom>
+            Your FoodShare Impact
+          </Typography>
+          
+          {data?.isBackupData && (
+            <Alert severity="info" sx={{ py: 0 }}>
+              Using estimated data
+            </Alert>
+          )}
+        </Box>
         <Typography variant="body1" color="text.secondary">
           As a FoodShare beneficiary, you're helping to reduce food waste while providing nutrition to those who need it. 
           Here's a summary of your impact through the donations you've received.
@@ -155,10 +198,9 @@ const ImpactMetrics = ({ data }) => {
                 <Typography variant="h6">
                   Food Received
                 </Typography>
-              </Box>
-              
+              </Box>  
               <Typography variant="h3" component="div" sx={{ mb: 1, fontWeight: 'bold' }}>
-                {metrics.totalFoodReceived.toFixed(1)}
+                {getMetricsValue('totalFoodReceived', 0).toFixed(1)}
                 <Typography component="span" variant="h5" color="text.secondary"> kg</Typography>
               </Typography>
               
@@ -169,10 +211,10 @@ const ImpactMetrics = ({ data }) => {
               <Box sx={{ mt: 'auto' }}>
                 <Typography variant="caption" color="text.secondary">
                   That's approximately
-                </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                  {metrics.mealsProvided} meals provided
-                </Typography>
+                </Typography>  
+              <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                {getMetricsValue('mealsProvided', 0)} meals provided
+              </Typography>
               </Box>
             </CardContent>
           </Card>
@@ -215,9 +257,8 @@ const ImpactMetrics = ({ data }) => {
                   Environmental Impact
                 </Typography>
               </Box>
-              
-              <Typography variant="h3" component="div" sx={{ mb: 1, fontWeight: 'bold' }}>
-                {metrics.carbonFootprintReduced.toFixed(1)}
+                <Typography variant="h3" component="div" sx={{ mb: 1, fontWeight: 'bold' }}>
+                {getMetricsValue('carbonFootprintReduced', 0).toFixed(1)}
                 <Typography component="span" variant="h5" color="text.secondary"> kg CO₂</Typography>
               </Typography>
               
@@ -228,9 +269,8 @@ const ImpactMetrics = ({ data }) => {
               <Box sx={{ mt: 'auto' }}>
                 <Typography variant="caption" color="text.secondary">
                   Equivalent to
-                </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                  {(metrics.carbonFootprintReduced / 10).toFixed(1)} trees planted 🌳
+                </Typography>                <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                  {(getMetricsValue('carbonFootprintReduced', 0) / 10).toFixed(1)} trees planted 🌳
                 </Typography>
               </Box>
             </CardContent>
@@ -276,7 +316,7 @@ const ImpactMetrics = ({ data }) => {
               </Box>
               
               <Typography variant="h3" component="div" sx={{ mb: 1, fontWeight: 'bold' }}>
-                {metrics.donationsReceived}
+                {getMetricsValue('donationsReceived', 0)}
                 <Typography component="span" variant="h5" color="text.secondary"> received</Typography>
               </Typography>
               
@@ -289,7 +329,7 @@ const ImpactMetrics = ({ data }) => {
                   Average response time
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                  {metrics.avgResponseTime} days to approval
+                  {getMetricsValue('avgResponseTime', 0)} days to approval
                 </Typography>
               </Box>
             </CardContent>
@@ -326,7 +366,7 @@ const ImpactMetrics = ({ data }) => {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={metrics.categoryBreakdown}
+                      data={getMetricsValue('categoryBreakdown', [])}
                       nameKey="name"
                       dataKey="value"
                       cx="50%"
@@ -334,7 +374,7 @@ const ImpactMetrics = ({ data }) => {
                       outerRadius={80}
                       label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
                     >
-                      {metrics.categoryBreakdown.map((entry, index) => (
+                      {getMetricsValue('categoryBreakdown', []).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={colorPalette[index % colorPalette.length]} />
                       ))}
                     </Pie>
@@ -367,7 +407,7 @@ const ImpactMetrics = ({ data }) => {
               
               <Box sx={{ height: 300 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={metrics.impactOverTime}>
+                  <LineChart data={getMetricsValue('impactOverTime', [])}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis yAxisId="left" orientation="left" stroke={theme.palette.primary.main} />
@@ -423,7 +463,7 @@ const ImpactMetrics = ({ data }) => {
                       Energy Saved
                     </Typography>
                     <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'warning.main' }}>
-                      {(metrics.totalFoodReceived * 4.5).toFixed(0)}
+                      {(getMetricsValue('totalFoodReceived', 0) * 4.5).toFixed(0)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       kilowatt-hours
@@ -438,7 +478,7 @@ const ImpactMetrics = ({ data }) => {
                       Landfill Space Saved
                     </Typography>
                     <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'info.main' }}>
-                      {(metrics.totalFoodReceived * 0.12).toFixed(1)}
+                      {(getMetricsValue('totalFoodReceived', 0) * 0.12).toFixed(1)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       cubic meters
@@ -453,7 +493,7 @@ const ImpactMetrics = ({ data }) => {
                       Water Conserved
                     </Typography>
                     <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                      {(metrics.totalFoodReceived * 15.3).toFixed(0)}
+                      {(getMetricsValue('totalFoodReceived', 0) * 15.3).toFixed(0)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       liters
@@ -491,12 +531,12 @@ const ImpactMetrics = ({ data }) => {
                     Food Waste Reduction Goal (1000kg)
                   </Typography>
                   <Typography variant="body2" color="primary.main" fontWeight="bold">
-                    {metrics.totalFoodReceived.toFixed(1)} / 1000 kg
+                    {getMetricsValue('totalFoodReceived', 0).toFixed(1)} / 1000 kg
                   </Typography>
                 </Box>
                 <LinearProgress 
                   variant="determinate" 
-                  value={(metrics.totalFoodReceived / 1000) * 100} 
+                  value={(getMetricsValue('totalFoodReceived', 0) / 1000) * 100} 
                   sx={{ height: 10, borderRadius: 5 }}
                 />
               </Box>
@@ -509,12 +549,12 @@ const ImpactMetrics = ({ data }) => {
                     Carbon Reduction Goal (1500kg CO₂)
                   </Typography>
                   <Typography variant="body2" color="success.main" fontWeight="bold">
-                    {metrics.carbonFootprintReduced.toFixed(1)} / 1500 kg CO₂
+                    {getMetricsValue('carbonFootprintReduced', 0).toFixed(1)} / 1500 kg CO₂
                   </Typography>
                 </Box>
                 <LinearProgress 
                   variant="determinate" 
-                  value={(metrics.carbonFootprintReduced / 1500) * 100} 
+                  value={(getMetricsValue('carbonFootprintReduced', 0) / 1500) * 100} 
                   color="success"
                   sx={{ height: 10, borderRadius: 5 }}
                 />
@@ -528,12 +568,12 @@ const ImpactMetrics = ({ data }) => {
                     Meals Provided Goal (5000)
                   </Typography>
                   <Typography variant="body2" color="secondary.main" fontWeight="bold">
-                    {metrics.mealsProvided} / 5000 meals
+                    {getMetricsValue('mealsProvided', 0)} / 5000 meals
                   </Typography>
                 </Box>
                 <LinearProgress 
                   variant="determinate" 
-                  value={(metrics.mealsProvided / 5000) * 100} 
+                  value={(getMetricsValue('mealsProvided', 0) / 5000) * 100} 
                   color="secondary"
                   sx={{ height: 10, borderRadius: 5 }}
                 />

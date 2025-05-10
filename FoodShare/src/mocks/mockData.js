@@ -405,6 +405,26 @@ export const mockBeneficiaryImpact = {
   total_food_received_kg: 215,
   total_meals_received: 645,
   carbon_footprint_saved_kg: 430,
+  totalFoodReceived: 215, // kg - added for compatibility with the ImpactMetrics component
+  mealsProvided: 645, // added for compatibility with the ImpactMetrics component
+  carbonFootprintReduced: 430, // kg CO2 - added for compatibility with the ImpactMetrics component
+  donationsReceived: 18, // added for compatibility with the ImpactMetrics component
+  avgResponseTime: 1.2, // days
+  wasteReduction: 215, // kg
+  impactOverTime: [
+    { month: "Jan", foodReceived: 28, carbonSaved: 56 },
+    { month: "Feb", foodReceived: 40, carbonSaved: 80 },
+    { month: "Mar", foodReceived: 65, carbonSaved: 130 },
+    { month: "Apr", foodReceived: 42, carbonSaved: 84 },
+    { month: "May", foodReceived: 40, carbonSaved: 80 }
+  ],
+  categoryBreakdown: [
+    { name: 'Produce', value: 30 },
+    { name: 'Non-Perishable', value: 25 },
+    { name: 'Prepared Food', value: 15 },
+    { name: 'Bakery', value: 20 },
+    { name: 'Other', value: 10 }
+  ],
   monthly_stats: [
     { month: "Jan", requests: 2, kg: 28 },
     { month: "Feb", requests: 3, kg: 40 },

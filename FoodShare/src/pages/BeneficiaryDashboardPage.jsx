@@ -23,7 +23,8 @@ import {
   Badge,
   Menu,
   MenuItem,
-  Link
+  Link,
+  Alert
 } from '@mui/material';
 import { 
   Dashboard as DashboardIcon,
@@ -37,13 +38,12 @@ import {
   Menu as MenuIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
 import BrowseDonations from '../components/beneficiary/BrowseDonations';
 import SearchDonations from '../components/beneficiary/SearchDonations';
 import MyRequests from '../components/beneficiary/MyRequests';
 import ImpactMetrics from '../components/beneficiary/ImpactMetrics';
 import { mockDonations, mockBeneficiaryImpact } from '../mocks/mockData';
-import { API_ENDPOINTS } from '../config/apiConfig';
+import { mockNotifications } from '../mocks/mockNotificationsData';
 
 // Define drawer width for sidebar
 const drawerWidth = 240;
@@ -51,8 +51,7 @@ const drawerWidth = 240;
 const BeneficiaryDashboardPage = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  // State variables
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));  // State variables
   const [open, setOpen] = useState(!isMobile);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('browse');
@@ -62,8 +61,10 @@ const BeneficiaryDashboardPage = () => {
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
-  
-  // Handle profile menu open/close
+  const [notificationsAnchorEl, setNotificationsAnchorEl] = useState(null);
+  const [userNotifications, setUserNotifications] = useState([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
+    // Handle profile menu open/close
   const handleProfileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -72,109 +73,113 @@ const BeneficiaryDashboardPage = () => {
     setAnchorEl(null);
   };
   
+  // Handle notifications menu open/close
+  const handleNotificationsMenuOpen = (event) => {
+    setNotificationsAnchorEl(event.currentTarget);
+  };
+
+  const handleNotificationsMenuClose = () => {
+    setNotificationsAnchorEl(null);
+  };
+  
+  // Mark a notification as read
+  const handleMarkNotificationAsRead = (notificationId) => {
+    setUserNotifications(prevNotifications => 
+      prevNotifications.map(notification => 
+        notification.notification_id === notificationId 
+          ? { ...notification, is_read: true } 
+          : notification
+      )
+    );
+  };
+    // Initial data fetch
   useEffect(() => {
-    // Get user from localStorage
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
-      // Redirect to login if not authenticated
-      navigate('/login');
-      return;
-    }    // Fetch all necessary data for the dashboard
     const fetchDashboardData = async () => {
+      const storedUser = localStorage.getItem('user');
+      let hasAnyDataLoaded = false;
       setLoading(true);
       
-      // Track if we have any data at all
-      let hasAnyDataLoaded = false;
+      if (!storedUser) {
+        // User not authenticated, redirect to login
+        navigate('/login');
+        return;
+      }
+      
+      // Set the user from local storage
+      setUser(JSON.parse(storedUser));
+      
       let donationsData = [];
       let requestsData = [];
       let impactData = null;
-      
-      try {
+        try {
         const userId = JSON.parse(storedUser).user_id;
         
-        // Fetch available donations - with error handling
-        try {
-          const donationsResponse = await axios.get(
-            `${API_ENDPOINTS.DONATION.LIST}?user_id=${userId}&status=available`
-          );
-          donationsData = donationsResponse.data?.content || donationsResponse.data || [];
-          hasAnyDataLoaded = true;
-        } catch (donationsErr) {
-          console.error('Error fetching donations:', donationsErr);
-          // Filter mock donations that are available
-          donationsData = mockDonations.filter(donation => donation.status === 'available');
-        }
+        // Use mock data for available donations
+        console.log('Using mock data for donations');
+        donationsData = mockDonations.filter(donation => donation.status === 'available');
+        donationsData = donationsData.map(donation => ({...donation, isBackupData: true}));
+        hasAnyDataLoaded = true;
         
-        // Fetch user's donation requests - with error handling
-        try {
-          const requestsResponse = await axios.get(
-            `${API_ENDPOINTS.DONATION_REQUESTS.LIST}?user_id=${userId}`
-          );
-          // Make sure requests is always an array
-          requestsData = requestsResponse.data?.content || requestsResponse.data || [];
-          requestsData = Array.isArray(requestsData) ? requestsData : [];
-          hasAnyDataLoaded = true;
-        } catch (requestsErr) {
-          console.error('Error fetching donation requests:', requestsErr);
-          // Empty array for requests as fallback
-          requestsData = [];
-        }
+        // Use empty array for requests or create some mock requests
+        console.log('Using mock data for requests');
+        requestsData = [];
         
-        // Fetch impact metrics - with error handling
-        try {
-          const impactResponse = await axios.get(
-            API_ENDPOINTS.IMPACT.BENEFICIARY(userId)
-          );
-          impactData = impactResponse.data;
-          hasAnyDataLoaded = true;
-        } catch (impactErr) {          console.error('Error fetching impact data:', impactErr);
-          // Adapt donor impact data for beneficiary as fallback
-          impactData = {
-            ...mockBeneficiaryImpact,
-            beneficiary_id: userId,
+        // Some sample mock requests data if needed
+        if (mockDonations.length > 0) {
+          // Create a few sample requests based on available donations
+          const sampleDonations = mockDonations.slice(0, 3);
+          requestsData = sampleDonations.map(donation => ({
+            request_id: `mock-req-${donation.donation_id}`,
+            user_id: userId,
+            donation_id: donation.donation_id,
+            status: 'pending',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            donation: donation,
             isBackupData: true
-          };
+          }));
         }
+          // Use mock impact metrics data
+        console.log('Using mock data for impact metrics');
+        impactData = {
+          ...mockBeneficiaryImpact,
+          beneficiary_id: userId,
+          isBackupData: true
+        };
+        
+        // Make sure impact data has all required properties
+        if (!impactData.totalFoodReceived && impactData.total_food_received_kg) {
+          impactData.totalFoodReceived = impactData.total_food_received_kg;
+        }
+        if (!impactData.mealsProvided && impactData.total_meals_received) {
+          impactData.mealsProvided = impactData.total_meals_received;
+        }
+        
+        // Load mock notifications
+        console.log('Using mock data for notifications');
+        const userSpecificNotifications = mockNotifications.filter(
+          notification => notification.user_id === userId || notification.user_id === "550e8400-e29b-41d4-a716-446655440001"
+        );
+        setUserNotifications(userSpecificNotifications);
+        hasAnyDataLoaded = true;
         
         // NEVER show the error page if we have ANY data
-        if (!hasAnyDataLoaded) {
-          setError('Failed to load dashboard data. Using mock data instead.');
-          console.log('All API calls failed. Using mock data as fallback');
+        if (hasAnyDataLoaded) {
+          setDonations(donationsData);
+          setRequests(requestsData);
+          setImpactData(impactData);
+          setDataLoaded(true);
         } else {
-          // Clear any previous errors
-          setError(null);
+          setError('Failed to load any dashboard data. Please try again later.');
         }
-        
-        // Update state with fetched data (real or mock)
-        setDonations(donationsData);
-        setRequests(requestsData);
-        setImpactData(impactData);
-        
       } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data. Using mock data instead.');
-        
-        // Fallback to mock data if API fails
-        console.log('Using mock data as fallback');
-        
-        // Filter to only donations that are available
-        const availableDonations = mockDonations.filter(donation => donation.status === 'available');
-        setDonations(availableDonations);
-        
-        // For requests, we don't have specific mock data, so we'll create an empty array
-        setRequests([]);
-          // Use donor impact data for now (we could adapt it for beneficiary)
-        setImpactData({
-          ...mockBeneficiaryImpact,
-          isBackupData: true
-        });
+        console.error('Error in dashboard data fetch:', err);
+        setError('Error loading dashboard data. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchDashboardData();
   }, [navigate]);
   
@@ -198,36 +203,48 @@ const BeneficiaryDashboardPage = () => {
       navigate('/');
     }
   };
-    // Function to create a donation request
+  // Function to create a donation request
   const handleCreateRequest = async (donationId) => {
     if (!user) return { success: false, error: 'User not authenticated' };
     
     try {
       setLoading(true);
       
-      const response = await axios.post(API_ENDPOINTS.DONATION_REQUESTS.CREATE, {
+      console.log('Using mock data for create request');
+      
+      // Find the donation from our mock data
+      const requestedDonation = donations.find(d => d.donation_id === donationId);
+      
+      // Create mock request data
+      const mockRequestData = {
+        request_id: `mock-req-${Date.now()}`,
         user_id: user.user_id,
         donation_id: donationId,
-        beneficiary_id: user.user_id
-      });
-        // Add the new request to the state
-      setRequests(prevRequests => Array.isArray(prevRequests) ? [response.data, ...prevRequests] : [response.data]);
+        beneficiary_id: user.user_id,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        donation: requestedDonation,
+        isBackupData: true
+      };
       
-      // Refresh available donations (remove the one that was just requested)
+      // Add the new request to the state
+      setRequests(prevRequests => Array.isArray(prevRequests) ? [mockRequestData, ...prevRequests] : [mockRequestData]);
+      
+      // Remove the requested donation from available list
       const updatedDonations = Array.isArray(donations) ? 
         donations.filter(donation => donation.donation_id !== donationId) : [];
       setDonations(updatedDonations);
       
       setLoading(false);
-      return { success: true, data: response.data };
+      return { success: true, data: mockRequestData, isBackupData: true };
     } catch (err) {
-      console.error('Error creating request:', err);
+      console.error('Error creating mock request:', err);
       setLoading(false);
       
-      // Even if the API fails, update the UI as if it succeeded
-      // This provides a smoother user experience when the API is unreliable
-      const mockRequestData = {
-        request_id: `mock-${Date.now()}`,
+      // Even in case of error, create a basic mock request
+      const fallbackMockData = {
+        request_id: `mock-fallback-${Date.now()}`,
         user_id: user.user_id,
         donation_id: donationId,
         beneficiary_id: user.user_id,
@@ -236,83 +253,126 @@ const BeneficiaryDashboardPage = () => {
         isBackupData: true
       };
       
-      setRequests(prevRequests => Array.isArray(prevRequests) ? [mockRequestData, ...prevRequests] : [mockRequestData]);
+      setRequests(prevRequests => Array.isArray(prevRequests) ? [fallbackMockData, ...prevRequests] : [fallbackMockData]);
       
       // Remove the requested donation from available list
       const updatedDonations = Array.isArray(donations) ? 
         donations.filter(donation => donation.donation_id !== donationId) : [];
       setDonations(updatedDonations);
       
-      return { success: true, data: mockRequestData, isBackupData: true };
+      return { success: true, data: fallbackMockData, isBackupData: true };
     }
   };
-  
-  // Function to cancel a donation request
+    // Function to cancel a donation request
   const handleCancelRequest = async (requestId) => {
     if (!user) return { success: false, error: 'User not authenticated' };
     
     try {
       setLoading(true);
       
-      await axios.delete(API_ENDPOINTS.DONATION_REQUESTS.DELETE(requestId), {
-        data: { user_id: user.user_id }
-      });
-        // Remove the cancelled request from the state
+      // Instead of API call, just update the UI with mock data
+      console.log('Using mock data for cancel request');
+      
+      // Remove the cancelled request from the state
       const updatedRequests = Array.isArray(requests) ?
         requests.filter(request => request.request_id !== requestId) : [];
       setRequests(updatedRequests);
       
-      // Refresh available donations list
-      try {
-        const donationsResponse = await axios.get(
-          `${API_ENDPOINTS.DONATION.LIST}?user_id=${user.user_id}&status=available`
-        );
-        setDonations(donationsResponse.data?.content || donationsResponse.data || []);
-      } catch (refreshErr) {
-        console.error('Error refreshing donations:', refreshErr);
-        // Keep existing donations if refresh fails
+      // Refresh available donations by finding the donation that was associated with this request
+      // and adding it back to the available donations
+      const cancelledRequest = requests.find(req => req.request_id === requestId);
+      if (cancelledRequest && cancelledRequest.donation) {
+        const updatedDonation = {
+          ...cancelledRequest.donation,
+          status: 'available',
+          isBackupData: true
+        };
+        setDonations(prevDonations => [...prevDonations, updatedDonation]);
+      } else {
+        // If we don't have the donation details, add a new mock donation
+        const newAvailableDonation = mockDonations.find(d => !donations.some(ad => ad.donation_id === d.donation_id));
+        if (newAvailableDonation) {
+          setDonations(prevDonations => [...prevDonations, {...newAvailableDonation, isBackupData: true}]);
+        }
       }
       
       setLoading(false);
-      return { success: true };
+      return { success: true, isBackupData: true };
     } catch (err) {
-      console.error('Error cancelling request:', err);
+      console.error('Error processing cancel request:', err);
       setLoading(false);
       
-      // Even if the API fails, update the UI as if it succeeded
+      // Even if there's an error in our mock data handling, still update the UI
       const updatedRequests = Array.isArray(requests) ?
-        requests.filter(request => request.request_id !== requestId) : [];      setRequests(updatedRequests);
+        requests.filter(request => request.request_id !== requestId) : [];
+      setRequests(updatedRequests);
       
       return { success: true, isBackupData: true };
     }
   };
-  
-  // Function to search donations
+    // Function to search donations
   const handleSearchDonations = async (searchParams) => {
     if (!user) return { success: false, error: 'User not authenticated' };
     
     try {
       setLoading(true);
       
-      // Build query parameters
-      const queryParams = new URLSearchParams();
-      queryParams.append('user_id', user.user_id);
+      // Use mock data instead of API call
+      console.log('Using mock data for search results');
       
-      if (searchParams.keyword) queryParams.append('keyword', searchParams.keyword);
-      if (searchParams.food_category) queryParams.append('food_category', searchParams.food_category);
-      if (searchParams.location) queryParams.append('location', searchParams.location);
+      // Filter donations based on search criteria
+      let filteredDonations = [...mockDonations].filter(donation => 
+        donation.status === 'available'
+      );
       
-      const response = await axios.get(`/api/v1/donations/search?${queryParams.toString()}`);
+      // Filter by keyword
+      if (searchParams.keyword) {
+        const lowerKeyword = searchParams.keyword.toLowerCase();
+        filteredDonations = filteredDonations.filter(donation => 
+          donation.food_name.toLowerCase().includes(lowerKeyword) ||
+          donation.food_type.toLowerCase().includes(lowerKeyword) ||
+          (donation.description && donation.description.toLowerCase().includes(lowerKeyword))
+        );
+      }
+      
+      // Filter by food category
+      if (searchParams.food_category && searchParams.food_category !== 'all') {
+        filteredDonations = filteredDonations.filter(donation => 
+          donation.food_type.toLowerCase() === searchParams.food_category.toLowerCase()
+        );
+      }
+      
+      // Filter by location
+      if (searchParams.location) {
+        const lowerLocation = searchParams.location.toLowerCase();
+        filteredDonations = filteredDonations.filter(donation => 
+          donation.pickup_address && donation.pickup_address.toLowerCase().includes(lowerLocation)
+        );
+      }
+      
+      // Mark as mock data
+      filteredDonations = filteredDonations.map(donation => ({
+        ...donation,
+        isBackupData: true
+      }));
       
       setLoading(false);
       return { 
         success: true, 
-        data: response.data.content || response.data 
+        data: filteredDonations,
+        isBackupData: true
       };
     } catch (err) {
-      console.error('Error searching donations:', err);
+      console.error('Error processing search:', err);
       setLoading(false);
-      return { success: false, error: err.message };
+      
+      // Return empty array in case of error
+      return { 
+        success: true, 
+        data: [],
+        error: 'Could not search donations. Using empty results.',
+        isBackupData: true
+      };
     }
   };
   
@@ -381,12 +441,21 @@ const BeneficiaryDashboardPage = () => {
             sx={{ mr: 2 }}
           >
             {open ? <MenuOpenIcon /> : <MenuIcon />}
-          </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, color: theme.palette.primary.main, fontWeight: 'bold' }}>
+          </IconButton>          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, color: theme.palette.primary.main, fontWeight: 'bold' }}>
             FoodShare Beneficiary
           </Typography>
-          <IconButton color="inherit" aria-label="notifications" sx={{ mr: 1 }}>
-            <Badge badgeContent={2} color="primary">
+          <IconButton 
+            color="inherit" 
+            aria-label="notifications" 
+            onClick={handleNotificationsMenuOpen}
+            aria-controls="notifications-menu"
+            aria-haspopup="true"
+            sx={{ mr: 1 }}
+          >
+            <Badge 
+              badgeContent={userNotifications.filter(notification => !notification.is_read).length} 
+              color="primary"
+            >
               <NotificationsIcon />
             </Badge>
           </IconButton>
@@ -435,9 +504,58 @@ const BeneficiaryDashboardPage = () => {
             }}>
               <ListItemIcon>
                 <LogoutIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText primary="Logout" />
+              </ListItemIcon>              <ListItemText primary="Logout" />
             </MenuItem>
+          </Menu>
+          
+          {/* Notifications Menu */}
+          <Menu
+            id="notifications-menu"
+            anchorEl={notificationsAnchorEl}
+            open={Boolean(notificationsAnchorEl)}
+            onClose={handleNotificationsMenuClose}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            PaperProps={{
+              style: {
+                maxHeight: 300,
+                width: 350,
+                overflow: 'auto',
+              },
+            }}
+          >
+            {userNotifications.length === 0 ? (
+              <MenuItem disabled>
+                <ListItemText primary="No notifications" />
+              </MenuItem>
+            ) : (
+              userNotifications.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map((notification) => (
+                <MenuItem 
+                  key={notification.notification_id}
+                  onClick={() => {
+                    handleMarkNotificationAsRead(notification.notification_id);
+                    handleNotificationsMenuClose();
+                  }}
+                  sx={{ 
+                    backgroundColor: notification.is_read ? 'transparent' : 'rgba(25, 118, 210, 0.08)',
+                    padding: '8px 16px',
+                    borderBottom: '1px solid #eee',
+                    '&:hover': {
+                      backgroundColor: 'rgba(25, 118, 210, 0.12)',
+                    }
+                  }}
+                >
+                  <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                    <Typography variant="body2" sx={{ fontWeight: notification.is_read ? 'normal' : 'bold' }}>
+                      {notification.message}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(notification.created_at).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </MenuItem>
+              ))
+            )}
           </Menu>
         </Toolbar>
       </AppBar>
@@ -592,10 +710,17 @@ const BeneficiaryDashboardPage = () => {
           </List>
         </Box>
       </Drawer>
-      
-      {/* Main Content */}
+        {/* Main Content */}
       <Box component="main" sx={{ flexGrow: 1, p: 3, pt: { xs: 10, sm: 12 } }}>
-        <Container maxWidth="lg">
+        <Container maxWidth="lg">          {/* Show alert when using backup data */}
+          {(impactData?.isBackupData || 
+            donations.some(d => d.isBackupData) || 
+            requests.some(r => r.isBackupData)) && (
+            <Alert severity="info" sx={{ mb: 3 }}>
+              Some data could not be retrieved from the server. Showing offline data instead.
+            </Alert>
+          )}
+          
           {/* Dashboard Content with AnimatePresence for smooth transitions */}
           <AnimatePresence mode="wait">
             {activeSection === 'browse' && (
@@ -692,7 +817,17 @@ const BeneficiaryDashboardPage = () => {
                   </Grid>
                   
                   <Grid item xs={12}>
-                    <ImpactMetrics data={impactData} />
+                    <ImpactMetrics data={impactData || {
+                      totalFoodReceived: 0,
+                      carbonFootprintReduced: 0,
+                      mealsProvided: 0,
+                      donationsReceived: 0,
+                      avgResponseTime: 0,
+                      wasteReduction: 0,
+                      impactOverTime: [],
+                      categoryBreakdown: [],
+                      isBackupData: true
+                    }} />
                   </Grid>
                 </Grid>
               </motion.div>
