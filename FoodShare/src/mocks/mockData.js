@@ -9,6 +9,140 @@ export const mockKpiData = {
   updated_at: "2025-05-09T08:00:00Z"
 };
 
+// Admin dashboard analytics
+export const mockAdminAnalytics = {
+  donations_over_time: [
+    { month: 'Jan', count: 87, weight_kg: 435 },
+    { month: 'Feb', count: 102, weight_kg: 510 },
+    { month: 'Mar', count: 118, weight_kg: 590 },
+    { month: 'Apr', count: 130, weight_kg: 650 },
+    { month: 'May', count: 142, weight_kg: 710 }
+  ],
+  food_by_category: [
+    { category: 'produce', percentage: 32, weight_kg: 2425.6 },
+    { category: 'bakery', percentage: 18, weight_kg: 1364.4 },
+    { category: 'dairy', percentage: 12, weight_kg: 909.6 },
+    { category: 'pantry', percentage: 15, weight_kg: 1137 },
+    { category: 'meals', percentage: 10, weight_kg: 758 },
+    { category: 'non-perishable', percentage: 8, weight_kg: 606.4 },
+    { category: 'other', percentage: 5, weight_kg: 379 }
+  ],
+  geographical_impact: [
+    { region: 'Downtown', donations: 312, beneficiaries: 1420 },
+    { region: 'North Side', donations: 275, beneficiaries: 1250 },
+    { region: 'West End', donations: 210, beneficiaries: 950 },
+    { region: 'East District', donations: 248, beneficiaries: 1130 },
+    { region: 'South County', donations: 200, beneficiaries: 930 }
+  ],
+  top_donors: [
+    { donor_id: '550e8400-e29b-41d4-a716-446655440010', name: 'Green Market', donations: 87, weight_kg: 675 },
+    { donor_id: '550e8400-e29b-41d4-a716-446655440011', name: 'Fresh Bakery', donations: 65, weight_kg: 430 },
+    { donor_id: '550e8400-e29b-41d4-a716-446655440012', name: 'City Supermarket', donations: 54, weight_kg: 520 },
+    { donor_id: '550e8400-e29b-41d4-a716-446655440013', name: 'Family Restaurant', donations: 42, weight_kg: 315 },
+    { donor_id: '550e8400-e29b-41d4-a716-446655440014', name: 'Daily Harvest', donations: 38, weight_kg: 290 }
+  ],
+  platform_growth: {
+    users_growth: [
+      { month: 'Jan', donors: 45, beneficiaries: 78 },
+      { month: 'Feb', donors: 52, beneficiaries: 85 },
+      { month: 'Mar', donors: 61, beneficiaries: 97 },
+      { month: 'Apr', donors: 70, beneficiaries: 110 },
+      { month: 'May', donors: 82, beneficiaries: 128 }
+    ],
+    monthly_active_users: 710,
+    average_donation_per_donor: 15.2,
+    average_claim_time_hours: 8.4
+  }
+};
+
+// Mock user data for admin management
+export const mockUsers = [
+  {
+    user_id: '550e8400-e29b-41d4-a716-446655440000',
+    username: 'John Donor',
+    email: 'donor@example.com',
+    role: 'donor',
+    status: 'active',
+    created_at: '2025-01-15T12:30:00Z',
+    donations_count: 27,
+    address: '123 Main St, Anytown, USA',
+    phone: '(555) 123-4567',
+    organization: 'Green Market'
+  },
+  {
+    user_id: '550e8400-e29b-41d4-a716-446655440001',
+    username: 'Mary Beneficiary',
+    email: 'beneficiary@example.com',
+    role: 'beneficiary',
+    status: 'active',
+    created_at: '2025-01-20T14:45:00Z',
+    claims_count: 18,
+    address: '456 Oak Ave, Anytown, USA',
+    phone: '(555) 234-5678',
+    organization: 'Community Center'
+  },
+  {
+    user_id: '550e8400-e29b-41d4-a716-446655440010',
+    username: 'Green Market Official',
+    email: 'market@greenmarket.com',
+    role: 'donor',
+    status: 'active',
+    created_at: '2024-12-10T09:20:00Z',
+    donations_count: 87,
+    address: '789 Market St, Anytown, USA',
+    phone: '(555) 345-6789',
+    organization: 'Green Market'
+  },
+  {
+    user_id: '550e8400-e29b-41d4-a716-446655440011',
+    username: 'Fresh Bakery',
+    email: 'contact@freshbakery.com',
+    role: 'donor',
+    status: 'active',
+    created_at: '2024-12-15T11:30:00Z',
+    donations_count: 65,
+    address: '101 Bread Lane, Anytown, USA',
+    phone: '(555) 456-7890',
+    organization: 'Fresh Bakery'
+  },
+  {
+    user_id: '550e8400-e29b-41d4-a716-446655440020',
+    username: 'Food Pantry Network',
+    email: 'help@foodpantry.org',
+    role: 'beneficiary',
+    status: 'active',
+    created_at: '2024-11-05T10:15:00Z',
+    claims_count: 124,
+    address: '202 Charity Way, Anytown, USA',
+    phone: '(555) 567-8901',
+    organization: 'Food Pantry Network'
+  },
+  {
+    user_id: '550e8400-e29b-41d4-a716-446655440021',
+    username: 'Homeless Shelter',
+    email: 'services@shelter.org',
+    role: 'beneficiary',
+    status: 'active',
+    created_at: '2024-11-10T13:45:00Z',
+    claims_count: 98,
+    address: '303 Hope St, Anytown, USA',
+    phone: '(555) 678-9012',
+    organization: 'City Homeless Shelter'
+  },
+  {
+    user_id: '550e8400-e29b-41d4-a716-446655440030',
+    username: 'Inactive User',
+    email: 'inactive@example.com',
+    role: 'donor',
+    status: 'inactive',
+    created_at: '2025-02-01T09:00:00Z',
+    donations_count: 3,
+    address: '404 Gone St, Anytown, USA',
+    phone: '(555) 789-0123',
+    organization: 'Former Business'
+  }
+];
+
 // Mock data for donations
 export const mockDonations = [
   {

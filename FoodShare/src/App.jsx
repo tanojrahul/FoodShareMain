@@ -6,6 +6,7 @@ import RegisterPage from './pages/RegisterPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import DonorDashboardPage from './pages/DonorDashboardPage.jsx';
 import BeneficiaryDashboardPage from './pages/BeneficiaryDashboardPage.jsx';
+import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 
 // Create a theme instance
 const theme = createTheme({
@@ -107,7 +108,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/donor" element={<DonorDashboardPage />} />
           <Route path="/beneficiary" element={<BeneficiaryDashboardPage />} />
-          <Route path="/admin" element={<HomePage />} /> {/* Placeholder for admin dashboard */}
+          <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="*" element={<HomePage />} />
         </Routes>
       </Router>
