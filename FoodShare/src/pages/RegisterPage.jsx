@@ -187,16 +187,21 @@ const RegisterPage = () => {
     
     try {
       // Handle the API call
-      const response = await axios.post('https://kvfdgmhh-2016.inc1.devtunnels.ms/api/v1/users/register', formData);
-        // Store user data in localStorage
+      const response = await axios.post('https://kvfdgmhh-2016.inc1.devtunnels.ms/api/v1/users/register', formData);      // After registration, store user data using authUtils
       const userData = {
         user_id: response.data.user_id,
         username: response.data.username,
         email: response.data.email,
-        role: response.data.role
+        role: response.data.role,
+        token: response.data.token
       };
       
+      // Import auth service to store user data properly
+      const { authService } = await import('../utils/authUtils');
       localStorage.setItem('user', JSON.stringify(userData));
+      if (userData.token) {
+        localStorage.setItem('authToken', userData.token);
+      }
       
       // Set success and redirect based on user role
       setSuccess(true);

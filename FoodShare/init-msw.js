@@ -12,5 +12,8 @@ try {
   console.log('MSW initialized successfully! Service Worker created in the public directory.');
 } catch (error) {
   console.error('Failed to initialize MSW:', error.message);
-  process.exit(1);
+  // Use globalThis.process if available, otherwise exit without a status code
+  if (typeof globalThis.process !== 'undefined') {
+    globalThis.process.exit(1);
+  }
 }

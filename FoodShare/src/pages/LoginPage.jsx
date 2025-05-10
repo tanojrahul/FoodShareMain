@@ -17,7 +17,6 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { motion } from 'framer-motion';
-import axios from 'axios';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Close as CloseIcon, Error as ErrorIcon } from '@mui/icons-material';
 import Navbar from '../components/Navbar';
@@ -141,27 +140,30 @@ const LoginPage = () => {
     
     setLoading(true);
     setServerError('');
-    
-    try {
-      // Send login request to the API
-      const response = await axios.post('https://kvfdgmhh-2016.inc1.devtunnels.ms/api/v1/users/login', {
+      try {
+      // Import auth service and call login method
+      const { authService } = await import('../utils/authUtils');
+      const result = await authService.login({
         email: formData.email,
         password_hash: formData.password
       });
       
-      // Store user data in localStorage for persistence across sessions
-      const userData = response.data;
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      // Navigate to the appropriate dashboard based on user role
-      if (userData.role === 'donor') {
-        navigate('/donor');
-      } else if (userData.role === 'beneficiary') {
-        navigate('/beneficiary');
-      } else if (userData.role === 'admin') {
-        navigate('/admin');
+      if (result.success) {
+        const userData = result.data;
+        
+        // Navigate to the appropriate dashboard based on user role
+        if (userData.role === 'donor') {
+          navigate('/donor');
+        } else if (userData.role === 'beneficiary') {
+          navigate('/beneficiary');
+        } else if (userData.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
       } else {
-        navigate('/');
+        setServerError(result.error);
+        setLoading(false);
       }
       
     } catch (error) {

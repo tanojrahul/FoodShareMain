@@ -70,6 +70,7 @@ import {
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import axios from 'axios';
+import { mockDonations, mockUsers, mockAdminAnalytics } from '../mocks/mockData';
 
 // Define drawer width for sidebar
 const drawerWidth = 240;
@@ -97,13 +98,13 @@ const AdminDashboardPage = () => {
   const [confirmAction, setConfirmAction] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  
-  // Tabs state for user management
+    // Tabs state for user management
   const [userTabValue, setUserTabValue] = useState(0);
   
   // Mock admin ID for now - this would come from auth context in a real app
-  const adminId = '660f8500-e29b-41d4-a716-446655440000';
-    useEffect(() => {
+  const adminId = '5177eefb-ad3b-47f6-ab5d-32c2561f42c9';
+  
+  useEffect(() => {
     // Fetch all necessary data for the admin dashboard
     const fetchDashboardData = async () => {
       setLoading(true);
@@ -120,7 +121,7 @@ const AdminDashboardPage = () => {
         const donationsResponse = await axios.get('/api/v1/donations');
         
         // Fetch analytics data
-        const analyticsResponse = await axios.get('/api/v1/admin/analytics');
+        const analyticsResponse = await axios.get('https://kvfdgmhh-2016.inc1.devtunnels.ms/api/v1/admin/analytics?userId=' + adminId);
         
         // Update state with fetched data
         setDonors(donorsList);
@@ -130,7 +131,20 @@ const AdminDashboardPage = () => {
         
       } catch (err) {
         console.error('Error fetching admin dashboard data:', err);
-        setError('Failed to load admin dashboard data. Please try again later.');
+        setError('Failed to load admin dashboard data. Using mock data instead.');
+        
+        // Fallback to mock data if API fails
+        console.log('Using mock data as fallback for admin dashboard');
+        
+        // Use mock users
+        const mockUserList = mockUsers || [];
+        const donorsList = mockUserList.filter(user => user.role === 'donor');
+        const beneficiariesList = mockUserList.filter(user => user.role === 'beneficiary');
+        
+        setDonors(donorsList);
+        setBeneficiaries(beneficiariesList);
+        setDonations(mockDonations || []);
+        setStats(mockAdminAnalytics);
       } finally {
         setLoading(false);
       }
@@ -478,9 +492,18 @@ const AdminDashboardPage = () => {
               </ListItemIcon>
               <ListItemText primary="Profile" />
             </ListItemButton>
-            
-            <ListItemButton 
-              onClick={() => navigate('/')}
+              <ListItemButton 
+              onClick={async () => {
+                try {
+                  // Import auth service and call logout method
+                  const { authService } = await import('../utils/authUtils');
+                  await authService.logout();
+                  navigate('/');
+                } catch (error) {
+                  console.error('Logout error:', error);
+                  navigate('/');
+                }
+              }}
               sx={{ borderRadius: 1, mb: 1 }}
             >
               <ListItemIcon>

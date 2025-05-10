@@ -7,6 +7,9 @@ import LoginPage from './pages/LoginPage.jsx';
 import DonorDashboardPage from './pages/DonorDashboardPage.jsx';
 import BeneficiaryDashboardPage from './pages/BeneficiaryDashboardPage.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
+import NotificationsPage from './pages/NotificationsPage.jsx';
+import SearchDonationsPage from './pages/SearchDonationsPage.jsx';
 
 // Create a theme instance
 const theme = createTheme({
@@ -109,6 +112,9 @@ function App() {
           <Route path="/donor" element={<DonorDashboardPage />} />
           <Route path="/beneficiary" element={<BeneficiaryDashboardPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/search-donations" element={<SearchDonationsPage />} />
           <Route path="*" element={<HomePage />} />
         </Routes>
       </Router>

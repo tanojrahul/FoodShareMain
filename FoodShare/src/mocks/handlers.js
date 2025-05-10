@@ -1,16 +1,84 @@
-import { http, HttpResponse, delay } from 'msw';
-import { mockKpiData, mockDonations, mockRewards, mockDonorImpact, foodCategories, mockUsers, mockAdminAnalytics } from './mockData';
+import { http, HttpResponse } from 'msw';
+import { mockKpiData, mockDonations, mockRewards, mockDonorImpact, mockBeneficiaryImpact, foodCategories, mockUsers, mockAdminAnalytics, mockUserProfiles, mockNotifications } from './mockData';
+import { API_BASE_URL } from '../config/apiConfig';
+
+// Helper function for delay
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const handlers = [
+  // Handler for KPIs
   http.get('/api/v1/kpis', async () => {
-    // Simulate network delay
     await delay(800);
     return HttpResponse.json(mockKpiData);
   }),
   
+  // Handler for notifications - Get user notifications
+  http.get('/api/v1/notifications', async ({ request }) => {
+    await delay(600);
+    
+    // Parse URL to get query parameters
+    const url = new URL(request.url);
+    const user_id = url.searchParams.get('user_id');
+    const page = parseInt(url.searchParams.get('page') || '0');
+    const size = parseInt(url.searchParams.get('size') || '5');
+    
+    if (!user_id) {
+      return new HttpResponse(
+        JSON.stringify({ message: 'User ID is required' }),
+        { status: 400 }
+      );
+    }
+    
+    // Filter notifications by user
+    const userNotifications = mockNotifications.filter(
+      notification => notification.user_id === user_id
+    );
+    
+    // Calculate pagination
+    const start = page * size;
+    const end = start + size;
+    const paginatedNotifications = userNotifications.slice(start, end);
+    const totalElements = userNotifications.length;
+    const totalPages = Math.ceil(totalElements / size);
+    
+    return HttpResponse.json({
+      content: paginatedNotifications,
+      page: page,
+      size: size,
+      total_elements: totalElements,
+      total_pages: totalPages
+    });
+  }),
+  
+  // Handler for marking notification as read
+  http.patch('/api/v1/notifications/:notification_id/read', async ({ params }) => {
+    await delay(500);
+    
+    const { notification_id } = params;
+    
+    // Find the notification in mock data
+    const notificationIndex = mockNotifications.findIndex(
+      notification => notification.notification_id === notification_id
+    );
+    
+    if (notificationIndex === -1) {
+      return new HttpResponse(
+        JSON.stringify({ message: 'Notification not found' }),
+        { status: 404 }
+      );
+    }
+    
+    // Mark as read
+    mockNotifications[notificationIndex].is_read = true;
+    
+    return HttpResponse.json({
+      success: true,
+      notification: mockNotifications[notificationIndex]
+    });
+  }),
+  
   // Handler for user registration
   http.post('/api/v1/users/register', async ({ request }) => {
-    // Simulate network delay
     await delay(1000);
     
     const requestBody = await request.json();
@@ -49,7 +117,6 @@ export const handlers = [
     
   // Handler for user login
   http.post('/api/v1/users/login', async ({ request }) => {
-    // Simulate network delay
     await delay(1000);
     
     const requestBody = await request.json();
@@ -102,13 +169,42 @@ export const handlers = [
     );
     
     if (user) {
-      return HttpResponse.json(user.userData);
+      // Generate a mock token
+      const token = 'mock-jwt-token-' + Math.random().toString(36).substring(2);
+      
+      // Return user data with token
+      return HttpResponse.json({
+        ...user.userData,
+        token
+      });
     } else {
       return new HttpResponse(
         JSON.stringify({ message: 'Invalid email or password' }),
         { status: 401 }
       );
     }
+  }),
+  
+  // Handler for user logout
+  http.post('/api/v1/auth/logout', async () => {
+    await delay(500);
+    
+    // In a real app, this would invalidate the token on the server
+    
+    return HttpResponse.json({
+      success: true,
+      message: 'Successfully logged out'
+    });
+  }),
+  
+  // Also handle the endpoint without /auth/ for compatibility
+  http.post('/api/v1/users/logout', async () => {
+    await delay(500);
+    
+    return HttpResponse.json({
+      success: true,
+      message: 'Successfully logged out'
+    });
   }),
 
   // Handler to get donor's donations
@@ -198,277 +294,173 @@ export const handlers = [
     });
   }),
   
-  // Handler to delete a donation
-  http.delete('/api/v1/donations/:donationId', async ({ params }) => {
-    await delay(800);
+  // Get donor rewards
+  http.get('/api/v1/rewards/user/:userId', async ({ params }) => {
+    await delay(600);
     
-    // In a real app, this would delete from the database
-    // For the mock, just return success
-    return HttpResponse.json({ 
-      message: 'Donation deleted successfully',
-      donation_id: params.donationId
-    });
+    const { userId } = params;
+    const userRewards = mockRewards.find(r => r.user_id === userId);
+    
+    if (userRewards) {
+      return HttpResponse.json(userRewards);
+    } else {
+      return new HttpResponse(
+        JSON.stringify({ message: 'Rewards not found for user' }),
+        { status: 404 }
+      );
+    }
+  }),
+  // Get donor impact metrics
+  http.get('/api/v1/impact/donor/:donorId', async ({ params }) => {
+    await delay(700);
+    
+    const { donorId } = params;
+    
+    // Since mockDonorImpact is an object, not an array, 
+    // directly check if the donor_id matches
+    if (mockDonorImpact.donor_id === donorId) {
+      return HttpResponse.json(mockDonorImpact);
+    } else {
+      return new HttpResponse(
+        JSON.stringify({ message: 'Impact metrics not found for donor' }),
+        { status: 404 }
+      );
+    }
   }),
   
-  // Handler to get donor rewards
-  http.get('/api/v1/rewards', async ({ request }) => {
-    await delay(800);
+  // Get beneficiary impact metrics
+  http.get('/api/v1/impact/beneficiary/:beneficiaryId', async ({ params }) => {
+    await delay(700);
     
-    // Check for donor_id in URL params
+    const { beneficiaryId } = params;
+    
+    // If the beneficiary ID matches our mock data, return it
+    if (mockBeneficiaryImpact && mockBeneficiaryImpact.beneficiary_id === beneficiaryId) {
+      return HttpResponse.json(mockBeneficiaryImpact);
+    } else {
+      // Otherwise, create a generic impact data with the correct ID
+      const genericImpact = {
+        ...mockBeneficiaryImpact,
+        beneficiary_id: beneficiaryId
+      };
+      return HttpResponse.json(genericImpact);
+    }
+  }),
+
+  // Get food categories
+  http.get('/api/v1/food_categories', () => {
+    return HttpResponse.json(foodCategories);
+  }),
+  
+  // Handler for food categories
+  http.get('/api/v1/categories/food', async () => {
+    await delay(500);
+    return HttpResponse.json(foodCategories);
+  }),
+  
+  // Handler for donation requests
+  http.get('/api/v1/donation_requests', async ({ request }) => {
+    await delay(700);
+    
+    // Parse URL to get query parameters
     const url = new URL(request.url);
-    const donorId = url.searchParams.get('donor_id');
+    const userId = url.searchParams.get('user_id');
     
-    if (donorId === mockRewards.donor_id) {
-      return HttpResponse.json(mockRewards);
+    if (!userId || userId === 'undefined') {
+      return new HttpResponse(
+        JSON.stringify({ message: 'Valid user ID is required' }),
+        { status: 400 }
+      );
     }
     
-    // If donor_id doesn't match, return empty rewards
-    return HttpResponse.json({
-      donor_id: donorId,
-      points: 0,
-      level: "Bronze",
-      rewards_available: [],
-      rewards_redeemed: []
-    });
+    // We don't have mock donation requests data, so return an empty array
+    // In a real implementation, we would filter by user ID
+    return HttpResponse.json([]);
   }),
   
-  // Handler to redeem a reward
-  http.post('/api/v1/rewards/redeem', async ({ request }) => {
-    await delay(1000);
+  // Handler for creating a donation request
+  http.post('/api/v1/donation_requests', async ({ request }) => {
+    await delay(800);
     
     const requestBody = await request.json();
     
     // Basic validation
-    if (!requestBody.donor_id || !requestBody.reward_id) {
+    if (!requestBody.user_id || !requestBody.donation_id) {
       return new HttpResponse(
         JSON.stringify({ message: 'Missing required fields' }),
         { status: 400 }
       );
     }
     
-    // Check if reward exists
-    const reward = mockRewards.rewards_available.find(
-      r => r.reward_id === requestBody.reward_id
-    );
+    // Create new request with mock data
+    const newRequest = {
+      request_id: crypto.randomUUID(),
+      user_id: requestBody.user_id,
+      donation_id: requestBody.donation_id,
+      beneficiary_id: requestBody.beneficiary_id || requestBody.user_id,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
     
-    if (!reward) {
-      return new HttpResponse(
-        JSON.stringify({ message: 'Reward not found' }),
-        { status: 404 }
-      );
-    }
+    return HttpResponse.json(newRequest);
+  }),
+  
+  // Handler for deleting a donation request
+  http.delete('/api/v1/donation_requests/:requestId', async ({ params }) => {
+    await delay(600);
     
-    // Check if user has enough points
-    if (mockRewards.points < reward.points_required) {
-      return new HttpResponse(
-        JSON.stringify({ message: 'Not enough points to redeem this reward' }),
-        { status: 400 }
-      );
-    }
+    const { requestId } = params;
     
-    // In a real app, this would update the database
-    // For the mock, return redemption success
+    // Just return success since we don't actually store the data
     return HttpResponse.json({
       success: true,
-      message: 'Reward redeemed successfully',
-      reward_code: `REWARD-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
-      points_remaining: mockRewards.points - reward.points_required
+      message: `Request ${requestId} successfully deleted`
     });
   }),
   
-  // Handler to get donor impact metrics
-  http.get('/api/v1/donors/:donorId/impact', async ({ params }) => {
-    await delay(800);
-    
-    const { donorId } = params;
-    
-    if (donorId === mockDonorImpact.donor_id) {
-      return HttpResponse.json(mockDonorImpact);
-    }
-    
-    return new HttpResponse(
-      JSON.stringify({ message: 'Donor not found' }),
-      { status: 404 }
-    );
+  // Get admin dashboard data
+  http.get('/api/v1/admin/dashboard', async () => {
+    await delay(1000);
+    return HttpResponse.json(mockAdminAnalytics);
   }),
-  // Get food categories
-  http.get('/api/v1/categories/food', async () => {
-    await delay(300);
-    return HttpResponse.json(foodCategories);
-  }),
-
-  // ADMIN HANDLERS
   
-  // Get all users for admin management
+  // Get users for admin
   http.get('/api/v1/admin/users', async () => {
     await delay(800);
     return HttpResponse.json(mockUsers);
   }),
   
-  // Get a specific user by ID
-  http.get('/api/v1/admin/users/:userId', async ({ params }) => {
-    await delay(500);
-    
-    const { userId } = params;
-    const user = mockUsers.find(u => u.user_id === userId);
-    
-    if (user) {
-      return HttpResponse.json(user);
-    } else {
-      return new HttpResponse(
-        JSON.stringify({ message: 'User not found' }),
-        { status: 404 }
-      );
-    }
-  }),
-  
-  // Update user status (activate/deactivate)
-  http.put('/api/v1/admin/users/:userId/status', async ({ request, params }) => {
-    await delay(800);
-    
-    const { userId } = params;
-    const requestBody = await request.json();
-    
-    const user = mockUsers.find(u => u.user_id === userId);
-    
-    if (!user) {
-      return new HttpResponse(
-        JSON.stringify({ message: 'User not found' }),
-        { status: 404 }
-      );
-    }
-    
-    // In a real app, this would update the database
-    return HttpResponse.json({
-      ...user,
-      status: requestBody.status,
-      updated_at: new Date().toISOString()
-    });
-  }),
-  
-  // Get admin analytics
-  http.get('/api/v1/admin/analytics', async () => {
-    await delay(1000);
-    return HttpResponse.json(mockAdminAnalytics);
-  }),
-  
-  // Override donation status
-  http.put('/api/v1/admin/donations/:donationId/status', async ({ request, params }) => {
-    await delay(800);
-    
-    const { donationId } = params;
-    const requestBody = await request.json();
-    
-    const donation = mockDonations.find(d => d.donation_id === donationId);
-    
-    if (!donation) {
-      return new HttpResponse(
-        JSON.stringify({ message: 'Donation not found' }),
-        { status: 404 }
-      );
-    }
-    
-    // In a real app, this would update the database
-    return HttpResponse.json({
-      ...donation,
-      status: requestBody.status,
-      admin_note: requestBody.admin_note || null,
-      updated_at: new Date().toISOString(),
-      modified_by: requestBody.admin_id
-    });
-  }),
-  
-  // Admin action logs
-  http.get('/api/v1/admin/logs', async () => {
-    await delay(800);
-    
-    // Mocked admin logs
-    const adminLogs = [
-      {
-        log_id: '1',
-        action_type: 'user_status_change',
-        admin_id: '550e8400-e29b-41d4-a716-446655440002',
-        target_id: '550e8400-e29b-41d4-a716-446655440030',
-        details: 'Changed user status from active to inactive',
-        timestamp: '2025-05-08T14:30:22Z'
-      },
-      {
-        log_id: '2',
-        action_type: 'donation_status_override',
-        admin_id: '550e8400-e29b-41d4-a716-446655440002',
-        target_id: 'a9b8c7d6-e5f4-3210-a9b8-c7d6e5f43210',
-        details: 'Changed donation status from claimed to completed',
-        timestamp: '2025-05-08T10:15:48Z'
-      },
-      {
-        log_id: '3',
-        action_type: 'platform_settings_update',
-        admin_id: '550e8400-e29b-41d4-a716-446655440002',
-        target_id: null,
-        details: 'Updated notification settings',
-        timestamp: '2025-05-07T16:42:05Z'
-      },
-      {
-        log_id: '4',
-        action_type: 'user_status_change',
-        admin_id: '550e8400-e29b-41d4-a716-446655440002',
-        target_id: '550e8400-e29b-41d4-a716-446655440021',
-        details: 'Changed user status from pending to active',
-        timestamp: '2025-05-06T09:18:33Z'
-      },
-      {
-        log_id: '5',
-        action_type: 'donation_status_override',
-        admin_id: '550e8400-e29b-41d4-a716-446655440002',
-        target_id: 'f6e7d8c9-b0a1-2345-f6e7-d8c9b0a12345',
-        details: 'Changed donation status from expired to available',
-        timestamp: '2025-05-05T11:24:17Z'
-      }
-    ];
-    
-    return HttpResponse.json(adminLogs);
-  }),
-  
-  // Get platform settings
-  http.get('/api/v1/admin/settings', async () => {
+  // Get user profile
+  http.get('/api/v1/users/:userId', async ({ params }) => {
     await delay(600);
     
-    // Mocked platform settings
-    const platformSettings = {
-      notification_settings: {
-        donation_expiry_warning_days: 2,
-        enable_email_notifications: true,
-        enable_push_notifications: true
-      },
-      rewards_settings: {
-        points_per_kg: 5,
-        enable_rewards_system: true
-      },
-      user_settings: {
-        require_email_verification: true,
-        auto_approve_users: false,
-        inactive_user_days: 90
-      },
-      donation_settings: {
-        max_donation_days: 14,
-        minimum_donation_quantity: 1,
-        allow_partial_claims: true
-      }
-    };
+    const { userId } = params;
+    const userProfile = mockUserProfiles.find(p => p.user_id === userId);
     
-    return HttpResponse.json(platformSettings);
+    if (userProfile) {
+      return HttpResponse.json(userProfile);
+    } else {
+      return new HttpResponse(
+        JSON.stringify({ message: 'User profile not found' }),
+        { status: 404 }
+      );
+    }
   }),
   
-  // Update platform settings
-  http.put('/api/v1/admin/settings', async ({ request }) => {
-    await delay(1000);
+  // Update user profile
+  http.put('/api/v1/users/:userId', async ({ params, request }) => {
+    await delay(800);
     
+    const { userId } = params;
     const requestBody = await request.json();
     
-    // In a real app, this would update the database
+    // In a real app, find and update the user in the database
+    // For the mock, return the updated user data
     return HttpResponse.json({
       ...requestBody,
+      user_id: userId,
       updated_at: new Date().toISOString()
     });
-  }),
+  })
 ];

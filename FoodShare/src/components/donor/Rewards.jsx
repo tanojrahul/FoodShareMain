@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { 
   Box, 
   Paper, 
@@ -84,17 +85,31 @@ const Rewards = ({ data, onRedeem }) => {
   const handleCloseSnackbar = () => {
     setSuccess(false);
   };
-  
   // If no data to display
   if (!data) {
     return (
-      <Box sx={{ py: 4, textAlign: 'center' }}>
-        <Typography variant="h6" color="text.secondary">
-          No rewards data available.
+      <Paper
+        elevation={3}
+        sx={{ p: 4, textAlign: 'center', borderRadius: 2, my: 2 }}
+      >
+        <Typography variant="h6" color="text.secondary" gutterBottom>
+          Rewards Data Unavailable
         </Typography>
-      </Box>
+        <Typography variant="body2" color="text.secondary">
+          We're having trouble loading your rewards information. Please try again later.
+        </Typography>
+        <Button
+          variant="outlined" 
+          sx={{ mt: 2 }}
+          onClick={() => window.location.reload()}
+        >
+          Refresh
+        </Button>
+      </Paper>
     );
   }
+    // Display a note if we're using backup data
+  const isUsingBackupData = data?.isBackupData;
   
   // Calculate level progress
   const getLevelProgress = () => {
@@ -135,13 +150,19 @@ const Rewards = ({ data, onRedeem }) => {
       return dateString;
     }
   };
-  
-  return (
+    return (
     <Box>
       {/* Error message */}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
           {error}
+        </Alert>
+      )}
+      
+      {/* Show a notice when displaying backup data */}
+      {data.isBackupData && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Using demo rewards data. The rewards service is currently unavailable.
         </Alert>
       )}
       
@@ -436,3 +457,16 @@ const Rewards = ({ data, onRedeem }) => {
 };
 
 export default Rewards;
+
+// PropTypes validation
+Rewards.propTypes = {
+  data: PropTypes.shape({
+    donor_id: PropTypes.string,
+    points: PropTypes.number,
+    level: PropTypes.string,
+    rewards_available: PropTypes.array,
+    rewards_redeemed: PropTypes.array,
+    isBackupData: PropTypes.bool
+  }),
+  onRedeem: PropTypes.func
+};
